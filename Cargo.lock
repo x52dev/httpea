@@ -306,6 +306,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "http-date-field"
+version = "0.0.1"
+dependencies = [
+ "codspeed-divan-compat",
+ "quickcheck",
+ "quickcheck_macros",
+ "winnow",
+]
+
+[[package]]
 name = "http-field"
 version = "0.0.4"
 dependencies = [
