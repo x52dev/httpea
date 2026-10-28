@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/*"]
 
 [workspace.package]
-repository = "https://github.com/robjtede/httpea"
+repository = "https://github.com/x52dev/httpea"
 license = "MIT"
 edition = "2024"
 rust-version = "1.92"

@@ -8,7 +8,7 @@
 <br />
 [![dependency status](https://deps.rs/crate/http-method/0.0.3/status.svg)](https://deps.rs/crate/http-method/0.0.3)
 [![Download](https://img.shields.io/crates/d/http-method.svg)](https://crates.io/crates/http-method)
-[![CI](https://github.com/robjtede/httpea/actions/workflows/ci.yml/badge.svg)](https://github.com/robjtede/httpea/actions/workflows/ci.yml)
+[![CI](https://github.com/x52dev/httpea/actions/workflows/ci.yml/badge.svg)](https://github.com/x52dev/httpea/actions/workflows/ci.yml)
 
 <!-- prettier-ignore-end -->
 
