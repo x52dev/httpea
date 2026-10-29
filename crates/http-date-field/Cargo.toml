@@ -1,0 +1,41 @@
+[package]
+name = "http-date-field"
+version = "0.0.1"
+description = "Parsers for current and historical HTTP date field formats"
+authors = ["Rob Ede <robjtede@icloud.com>"]
+categories = ["parsing"]
+keywords = ["winnow", "http", "date"]
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[package.metadata.cargo-shear]
+ignored = ["quickcheck"] # used by quickcheck_macros
+
+[package.metadata.cargo_check_external_types]
+allowed_external_types = ["winnow::*"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+default = ["std", "simd"]
+std = ["winnow?/std"]
+simd = ["winnow?/simd"]
+winnow = ["dep:winnow"]
+
+[dependencies]
+winnow = { version = "1", optional = true, default-features = false, features = ["parser"] }
+
+[dev-dependencies]
+divan = { package = "codspeed-divan-compat", version = "4" }
+quickcheck = { version = "1", default-features = false }
+quickcheck_macros = "1"
+
+[[bench]]
+name = "http-date"
+harness = false
+
+[lints]
+workspace = true
