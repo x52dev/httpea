@@ -3,29 +3,29 @@
 use ::winnow::Parser as _;
 
 use super::*;
-use crate::winnow::{parse_http_date, parse_http_date_ci};
+use crate::winnow::{parse_http_date_unchecked, parse_http_date_unchecked_ci};
 
 type CompleteParser = fn(&[u8]) -> Result<HttpDate, crate::ParseError>;
 type Adapter = fn(&mut &[u8]) -> ::winnow::ModalResult<HttpDate>;
 
 const FORMAT_PARSERS: [(CompleteParser, CompleteParser, Adapter, Adapter); 3] = [
     (
-        |input| HttpDate::parse_imf_fixdate(input),
-        |input| HttpDate::parse_imf_fixdate_ci(input),
-        crate::winnow::parse_imf_fixdate,
-        crate::winnow::parse_imf_fixdate_ci,
+        |input| HttpDate::parse_imf_fixdate_unchecked(input),
+        |input| HttpDate::parse_imf_fixdate_unchecked_ci(input),
+        crate::winnow::parse_imf_fixdate_unchecked,
+        crate::winnow::parse_imf_fixdate_unchecked_ci,
     ),
     (
-        |input| HttpDate::parse_rfc850_date(input),
-        |input| HttpDate::parse_rfc850_date_ci(input),
-        crate::winnow::parse_rfc850_date,
-        crate::winnow::parse_rfc850_date_ci,
+        |input| HttpDate::parse_rfc850_date_unchecked(input),
+        |input| HttpDate::parse_rfc850_date_unchecked_ci(input),
+        crate::winnow::parse_rfc850_date_unchecked,
+        crate::winnow::parse_rfc850_date_unchecked_ci,
     ),
     (
-        |input| HttpDate::parse_asctime_date(input),
-        |input| HttpDate::parse_asctime_date_ci(input),
-        crate::winnow::parse_asctime_date,
-        crate::winnow::parse_asctime_date_ci,
+        |input| HttpDate::parse_asctime_date_unchecked(input),
+        |input| HttpDate::parse_asctime_date_unchecked_ci(input),
+        crate::winnow::parse_asctime_date_unchecked,
+        crate::winnow::parse_asctime_date_unchecked_ci,
     ),
 ];
 
@@ -33,11 +33,11 @@ const FORMAT_PARSERS: [(CompleteParser, CompleteParser, Adapter, Adapter); 3] = 
 fn consumes_only_the_date() {
     for date in DATES {
         let value = format!("{date}\r\nNext: value");
-        let (rest, parsed) = parse_http_date.parse_peek(value.as_bytes()).unwrap();
+        let (rest, parsed) = parse_http_date_unchecked.parse_peek(value.as_bytes()).unwrap();
 
         assert_eq!(rest, b"\r\nNext: value");
-        assert_eq!(parsed, parse_http_date.parse(date.as_bytes()).unwrap());
-        assert!(parse_http_date.parse(value.as_bytes()).is_err());
+        assert_eq!(parsed, parse_http_date_unchecked.parse(date.as_bytes()).unwrap());
+        assert!(parse_http_date_unchecked.parse(value.as_bytes()).is_err());
     }
 }
 
@@ -48,12 +48,12 @@ fn every_truncated_prefix_is_rejected_without_consuming_input() {
             let prefix = &date.as_bytes()[..len];
             let mut input = prefix;
 
-            assert!(parse_http_date(&mut input).is_err());
+            assert!(parse_http_date_unchecked(&mut input).is_err());
             assert_eq!(input, prefix);
-            assert!(parse_http_date_ci(&mut input).is_err());
+            assert!(parse_http_date_unchecked_ci(&mut input).is_err());
             assert_eq!(input, prefix);
-            assert!(HttpDate::parse(prefix).is_err());
-            assert!(HttpDate::parse_ci(prefix).is_err());
+            assert!(HttpDate::parse_unchecked(prefix).is_err());
+            assert!(HttpDate::parse_unchecked_ci(prefix).is_err());
         }
     }
 }
@@ -111,10 +111,10 @@ fn generated_components_round_trip(
                 .parse(date.to_ascii_lowercase().as_bytes())
                 .ok()
                 == Some(expected)
-            && HttpDate::parse(date.as_bytes()).ok() == Some(expected)
-            && HttpDate::parse_ci(date.to_ascii_lowercase().as_bytes()).ok() == Some(expected)
-            && parse_http_date.parse(date.as_bytes()).ok() == Some(expected)
-            && parse_http_date_ci
+            && HttpDate::parse_unchecked(date.as_bytes()).ok() == Some(expected)
+            && HttpDate::parse_unchecked_ci(date.to_ascii_lowercase().as_bytes()).ok() == Some(expected)
+            && parse_http_date_unchecked.parse(date.as_bytes()).ok() == Some(expected)
+            && parse_http_date_unchecked_ci
                 .parse(date.to_ascii_lowercase().as_bytes())
                 .ok()
                 == Some(expected)
@@ -123,21 +123,21 @@ fn generated_components_round_trip(
 
 #[quickcheck]
 fn arbitrary_bytes_do_not_panic_and_strict_success_implies_cache_success(bytes: Vec<u8>) -> bool {
-    let strict = parse_http_date.parse(bytes.as_slice());
-    let cache = parse_http_date_ci.parse(bytes.as_slice());
-    assert_eq!(strict.as_ref().ok(), HttpDate::parse(&bytes).as_ref().ok());
+    let strict = parse_http_date_unchecked.parse(bytes.as_slice());
+    let cache = parse_http_date_unchecked_ci.parse(bytes.as_slice());
+    assert_eq!(strict.as_ref().ok(), HttpDate::parse_unchecked(&bytes).as_ref().ok());
     assert_eq!(
         cache.as_ref().ok(),
-        HttpDate::parse_ci(&bytes).as_ref().ok()
+        HttpDate::parse_unchecked_ci(&bytes).as_ref().ok()
     );
 
     let mut input = bytes.as_slice();
-    if parse_http_date(&mut input).is_err() {
+    if parse_http_date_unchecked(&mut input).is_err() {
         assert_eq!(input, bytes.as_slice());
     }
 
     let mut input = bytes.as_slice();
-    if parse_http_date_ci(&mut input).is_err() {
+    if parse_http_date_unchecked_ci(&mut input).is_err() {
         assert_eq!(input, bytes.as_slice());
     }
 
@@ -150,7 +150,7 @@ fn arbitrary_suffix_is_left_unconsumed(suffix: Vec<u8>) -> bool {
         let mut bytes = date.as_bytes().to_vec();
         bytes.extend_from_slice(&suffix);
 
-        parse_http_date
+        parse_http_date_unchecked
             .parse_peek(bytes.as_slice())
             .is_ok_and(|(rest, _)| rest == suffix)
     })
@@ -164,9 +164,9 @@ fn invalid_values_leave_adapter_input_unchanged() {
             bytes[index] = b'!';
             let mut input = bytes.as_slice();
 
-            assert!(parse_http_date(&mut input).is_err());
+            assert!(parse_http_date_unchecked(&mut input).is_err());
             assert_eq!(input, bytes);
-            assert!(parse_http_date_ci(&mut input).is_err());
+            assert!(parse_http_date_unchecked_ci(&mut input).is_err());
             assert_eq!(input, bytes);
         }
     }
@@ -182,7 +182,7 @@ fn format_parsers_accept_only_their_format() {
             let mut cache_input = input;
 
             if format == index {
-                let expected = HttpDate::parse(input).unwrap();
+                let expected = HttpDate::parse_unchecked(input).unwrap();
                 assert_eq!(strict(input).unwrap(), expected);
                 assert_eq!(cache(input).unwrap(), expected);
                 assert_eq!(adapter.parse_next(&mut input).unwrap(), expected);

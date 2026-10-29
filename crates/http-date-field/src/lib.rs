@@ -143,6 +143,55 @@ impl HttpDate {
         }
     }
 
+    /// Parses a complete, case-sensitive HTTP date value.
+    ///
+    /// Skips calendar and weekday validation. Syntax and component ranges are checked.
+    ///
+    /// Returns an error for invalid syntax, out-of-range components, or trailing
+    /// input. Calendar validation and two-digit year resolution are not performed.
+    ///
+    /// # Format
+    ///
+    /// Accepts all three HTTP date formats:
+    ///
+    /// ```text
+    /// Sun, 06 Nov 1994 08:49:37 GMT
+    /// Sunday, 06-Nov-94 08:49:37 GMT
+    /// Sun Nov  6 08:49:37 1994
+    /// ```
+    ///
+    /// All formats represent UTC. RFC 850 preserves the year as [`Year::TwoDigit`].
+    /// Names are case-sensitive.
+    ///
+    /// The input excludes the `Date:` field name and surrounding whitespace.
+    /// Calendar validity, weekday agreement, and actual leap seconds are not checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] for invalid syntax, a truncated date, or
+    /// an out-of-range component.
+    /// Trailing bytes, including whitespace, are rejected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use http_date_field::{HttpDate, Year};
+    ///
+    /// let date = HttpDate::parse_unchecked("Sun, 06 Nov 1994 08:49:37 GMT").unwrap();
+    /// assert_eq!(date.year, Year::Full(1994));
+    /// assert_eq!((date.month, date.day), (11, 6));
+    /// assert!(HttpDate::parse_unchecked("Sun, 06 Nov 1994 08:49:37 GMT ").is_err());
+    /// ```
+    pub fn parse_unchecked(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        let input = input.as_ref();
+
+        match input.get(3) {
+            Some(b',') => Self::parse_imf_fixdate_unchecked(input),
+            Some(b' ') => Self::parse_asctime_date_unchecked(input),
+            _ => Self::parse_rfc850_date_unchecked(input),
+        }
+    }
+
     /// Parses a complete HTTP date value with ASCII case-insensitive names.
     ///
     /// All other rules match [`Self::parse`].
@@ -189,6 +238,54 @@ impl HttpDate {
         }
     }
 
+    /// Parses a complete HTTP date value with ASCII case-insensitive names.
+    ///
+    /// Skips calendar and weekday validation. Syntax and component ranges are checked.
+    ///
+    /// All other rules match [`Self::parse_unchecked`].
+    ///
+    /// # Format
+    ///
+    /// Accepts all three HTTP date formats:
+    ///
+    /// ```text
+    /// Sun, 06 Nov 1994 08:49:37 GMT
+    /// Sunday, 06-Nov-94 08:49:37 GMT
+    /// Sun Nov  6 08:49:37 1994
+    /// ```
+    ///
+    /// All formats represent UTC. RFC 850 preserves the year as [`Year::TwoDigit`].
+    /// Weekday, month, and `GMT` names are matched without ASCII case sensitivity.
+    ///
+    /// The input excludes the `Date:` field name and surrounding whitespace.
+    /// Calendar validity, weekday agreement, and actual leap seconds are not checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] for invalid syntax, a truncated date, or
+    /// an out-of-range component.
+    /// Trailing bytes, including whitespace, are rejected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use http_date_field::{HttpDate, Year};
+    ///
+    /// let date = HttpDate::parse_unchecked_ci("sun, 06 nov 1994 08:49:37 gmt").unwrap();
+    /// assert_eq!(date.year, Year::Full(1994));
+    /// assert_eq!((date.month, date.day), (11, 6));
+    /// assert!(HttpDate::parse_unchecked_ci("sun, 06 nov 1994 08:49:37 gmt ").is_err());
+    /// ```
+    pub fn parse_unchecked_ci(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        let input = input.as_ref();
+
+        match input.get(3) {
+            Some(b',') => Self::parse_imf_fixdate_unchecked_ci(input),
+            Some(b' ') => Self::parse_asctime_date_unchecked_ci(input),
+            _ => Self::parse_rfc850_date_unchecked_ci(input),
+        }
+    }
+
     /// Parses a complete IMF-fixdate value.
     ///
     /// Rejects other formats and trailing input. All other rules match [`Self::parse`].
@@ -224,6 +321,54 @@ impl HttpDate {
     /// assert!(HttpDate::parse_imf_fixdate("Sun, 06 Nov 1994 08:49:37 GMT ").is_err());
     /// ```
     pub fn parse_imf_fixdate(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        let input = input.as_ref();
+
+        parse_complete(input, imf_fixdate::<false>).and_then(|date| {
+            let Year::Full(year) = date.year else {
+                return Err(ParseError);
+            };
+
+            calendar_valid(&date, year).then_some(date).ok_or(ParseError)
+        })
+    }
+
+    /// Parses a complete IMF-fixdate value.
+    ///
+    /// Skips calendar and weekday validation. Syntax and component ranges are checked.
+    ///
+    /// Rejects other formats and trailing input. All other rules match [`Self::parse_unchecked`].
+    ///
+    /// # Format
+    ///
+    /// ```text
+    /// Sun, 06 Nov 1994 08:49:37 GMT
+    /// ```
+    ///
+    /// The weekday and month use three letters. The day uses two digits and the
+    /// year uses four digits. The zone must be `GMT`.
+    /// Names are case-sensitive.
+    ///
+    /// The input excludes the `Date:` field name and surrounding whitespace.
+    /// Calendar validity, weekday agreement, and actual leap seconds are not checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] for invalid syntax, a truncated date, or
+    /// an out-of-range component.
+    /// Trailing bytes, including whitespace, are rejected.
+    /// Other HTTP date formats are rejected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use http_date_field::{HttpDate, Year};
+    ///
+    /// let date = HttpDate::parse_imf_fixdate_unchecked("Sun, 06 Nov 1994 08:49:37 GMT").unwrap();
+    /// assert_eq!(date.year, Year::Full(1994));
+    /// assert_eq!((date.month, date.day), (11, 6));
+    /// assert!(HttpDate::parse_imf_fixdate_unchecked("Sun, 06 Nov 1994 08:49:37 GMT ").is_err());
+    /// ```
+    pub fn parse_imf_fixdate_unchecked(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
         let input = input.as_ref();
 
         parse_complete(input, imf_fixdate::<false>)
@@ -264,6 +409,54 @@ impl HttpDate {
     /// assert!(HttpDate::parse_imf_fixdate_ci("sun, 06 nov 1994 08:49:37 gmt ").is_err());
     /// ```
     pub fn parse_imf_fixdate_ci(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        let input = input.as_ref();
+
+        parse_complete(input, imf_fixdate::<true>).and_then(|date| {
+            let Year::Full(year) = date.year else {
+                return Err(ParseError);
+            };
+
+            calendar_valid(&date, year).then_some(date).ok_or(ParseError)
+        })
+    }
+
+    /// Parses a complete IMF-fixdate value with ASCII case-insensitive names.
+    ///
+    /// Skips calendar and weekday validation. Syntax and component ranges are checked.
+    ///
+    /// Rejects other formats and trailing input. All other rules match [`Self::parse_unchecked`].
+    ///
+    /// # Format
+    ///
+    /// ```text
+    /// Sun, 06 Nov 1994 08:49:37 GMT
+    /// ```
+    ///
+    /// The weekday and month use three letters. The day uses two digits and the
+    /// year uses four digits. The zone must be `GMT`.
+    /// Weekday, month, and `GMT` names are matched without ASCII case sensitivity.
+    ///
+    /// The input excludes the `Date:` field name and surrounding whitespace.
+    /// Calendar validity, weekday agreement, and actual leap seconds are not checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] for invalid syntax, a truncated date, or
+    /// an out-of-range component.
+    /// Trailing bytes, including whitespace, are rejected.
+    /// Other HTTP date formats are rejected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use http_date_field::{HttpDate, Year};
+    ///
+    /// let date = HttpDate::parse_imf_fixdate_unchecked_ci("sun, 06 nov 1994 08:49:37 gmt").unwrap();
+    /// assert_eq!(date.year, Year::Full(1994));
+    /// assert_eq!((date.month, date.day), (11, 6));
+    /// assert!(HttpDate::parse_imf_fixdate_unchecked_ci("sun, 06 nov 1994 08:49:37 gmt ").is_err());
+    /// ```
+    pub fn parse_imf_fixdate_unchecked_ci(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
         let input = input.as_ref();
 
         parse_complete(input, imf_fixdate::<true>)
@@ -307,6 +500,55 @@ impl HttpDate {
     pub fn parse_asctime_date(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
         let input = input.as_ref();
 
+        parse_complete(input, asctime_date::<false>).and_then(|date| {
+            let Year::Full(year) = date.year else {
+                return Err(ParseError);
+            };
+
+            calendar_valid(&date, year).then_some(date).ok_or(ParseError)
+        })
+    }
+
+    /// Parses a complete asctime value.
+    ///
+    /// Skips calendar and weekday validation. Syntax and component ranges are checked.
+    ///
+    /// Rejects other formats and trailing input. All other rules match [`Self::parse_unchecked`].
+    ///
+    /// # Format
+    ///
+    /// ```text
+    /// Sun Nov  6 08:49:37 1994
+    /// ```
+    ///
+    /// A one-digit day has a leading space, so there are two spaces after the
+    /// month. A two-digit day, including a zero-padded day, is also accepted.
+    /// This format has no zone suffix; the time is UTC.
+    /// Names are case-sensitive.
+    ///
+    /// The input excludes the `Date:` field name and surrounding whitespace.
+    /// Calendar validity, weekday agreement, and actual leap seconds are not checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] for invalid syntax, a truncated date, or
+    /// an out-of-range component.
+    /// Trailing bytes, including whitespace, are rejected.
+    /// Other HTTP date formats are rejected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use http_date_field::{HttpDate, Year};
+    ///
+    /// let date = HttpDate::parse_asctime_date_unchecked("Sun Nov  6 08:49:37 1994").unwrap();
+    /// assert_eq!(date.year, Year::Full(1994));
+    /// assert_eq!((date.month, date.day), (11, 6));
+    /// assert!(HttpDate::parse_asctime_date_unchecked("Sun Nov  6 08:49:37 1994 ").is_err());
+    /// ```
+    pub fn parse_asctime_date_unchecked(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        let input = input.as_ref();
+
         parse_complete(input, asctime_date::<false>)
     }
 
@@ -346,6 +588,55 @@ impl HttpDate {
     /// assert!(HttpDate::parse_asctime_date_ci("sun nov  6 08:49:37 1994 ").is_err());
     /// ```
     pub fn parse_asctime_date_ci(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        let input = input.as_ref();
+
+        parse_complete(input, asctime_date::<true>).and_then(|date| {
+            let Year::Full(year) = date.year else {
+                return Err(ParseError);
+            };
+
+            calendar_valid(&date, year).then_some(date).ok_or(ParseError)
+        })
+    }
+
+    /// Parses a complete asctime value with ASCII case-insensitive names.
+    ///
+    /// Skips calendar and weekday validation. Syntax and component ranges are checked.
+    ///
+    /// Rejects other formats and trailing input. All other rules match [`Self::parse_unchecked`].
+    ///
+    /// # Format
+    ///
+    /// ```text
+    /// Sun Nov  6 08:49:37 1994
+    /// ```
+    ///
+    /// A one-digit day has a leading space, so there are two spaces after the
+    /// month. A two-digit day, including a zero-padded day, is also accepted.
+    /// This format has no zone suffix; the time is UTC.
+    /// Weekday, month, and `GMT` names are matched without ASCII case sensitivity.
+    ///
+    /// The input excludes the `Date:` field name and surrounding whitespace.
+    /// Calendar validity, weekday agreement, and actual leap seconds are not checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] for invalid syntax, a truncated date, or
+    /// an out-of-range component.
+    /// Trailing bytes, including whitespace, are rejected.
+    /// Other HTTP date formats are rejected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use http_date_field::{HttpDate, Year};
+    ///
+    /// let date = HttpDate::parse_asctime_date_unchecked_ci("sun nov  6 08:49:37 1994").unwrap();
+    /// assert_eq!(date.year, Year::Full(1994));
+    /// assert_eq!((date.month, date.day), (11, 6));
+    /// assert!(HttpDate::parse_asctime_date_unchecked_ci("sun nov  6 08:49:37 1994 ").is_err());
+    /// ```
+    pub fn parse_asctime_date_unchecked_ci(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
         let input = input.as_ref();
 
         parse_complete(input, asctime_date::<true>)
@@ -391,6 +682,48 @@ impl HttpDate {
         parse_complete(input, rfc850_date::<false>)
     }
 
+    /// Parses a complete RFC 850 value.
+    ///
+    /// Skips calendar and weekday validation. Syntax and component ranges are checked.
+    ///
+    /// Rejects other formats and trailing input. All other rules match [`Self::parse_unchecked`].
+    ///
+    /// # Format
+    ///
+    /// ```text
+    /// Sunday, 06-Nov-94 08:49:37 GMT
+    /// ```
+    ///
+    /// The weekday is written in full. The year is returned as [`Year::TwoDigit`].
+    /// The caller must resolve its century against the current UTC time.
+    /// Names are case-sensitive.
+    ///
+    /// The input excludes the `Date:` field name and surrounding whitespace.
+    /// Calendar validity, weekday agreement, and actual leap seconds are not checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] for invalid syntax, a truncated date, or
+    /// an out-of-range component.
+    /// Trailing bytes, including whitespace, are rejected.
+    /// Other HTTP date formats are rejected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use http_date_field::{HttpDate, Year};
+    ///
+    /// let date = HttpDate::parse_rfc850_date_unchecked("Sunday, 06-Nov-94 08:49:37 GMT").unwrap();
+    /// assert_eq!(date.year, Year::TwoDigit(94));
+    /// assert_eq!((date.month, date.day), (11, 6));
+    /// assert!(HttpDate::parse_rfc850_date_unchecked("Sunday, 06-Nov-94 08:49:37 GMT ").is_err());
+    /// ```
+    pub fn parse_rfc850_date_unchecked(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        let input = input.as_ref();
+
+        parse_complete(input, rfc850_date::<false>)
+    }
+
     /// Parses a complete RFC 850 value with ASCII case-insensitive names.
     ///
     /// Rejects other formats and trailing input. All other rules match [`Self::parse`].
@@ -430,6 +763,73 @@ impl HttpDate {
 
         parse_complete(input, rfc850_date::<true>)
     }
+
+    /// Parses a complete RFC 850 value with ASCII case-insensitive names.
+    ///
+    /// Skips calendar and weekday validation. Syntax and component ranges are checked.
+    ///
+    /// Rejects other formats and trailing input. All other rules match [`Self::parse_unchecked`].
+    ///
+    /// # Format
+    ///
+    /// ```text
+    /// Sunday, 06-Nov-94 08:49:37 GMT
+    /// ```
+    ///
+    /// The weekday is written in full. The year is returned as [`Year::TwoDigit`].
+    /// The caller must resolve its century against the current UTC time.
+    /// Weekday, month, and `GMT` names are matched without ASCII case sensitivity.
+    ///
+    /// The input excludes the `Date:` field name and surrounding whitespace.
+    /// Calendar validity, weekday agreement, and actual leap seconds are not checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseError`] for invalid syntax, a truncated date, or
+    /// an out-of-range component.
+    /// Trailing bytes, including whitespace, are rejected.
+    /// Other HTTP date formats are rejected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use http_date_field::{HttpDate, Year};
+    ///
+    /// let date = HttpDate::parse_rfc850_date_unchecked_ci("sunday, 06-nov-94 08:49:37 gmt").unwrap();
+    /// assert_eq!(date.year, Year::TwoDigit(94));
+    /// assert_eq!((date.month, date.day), (11, 6));
+    /// assert!(HttpDate::parse_rfc850_date_unchecked_ci("sunday, 06-nov-94 08:49:37 gmt ").is_err());
+    /// ```
+    pub fn parse_rfc850_date_unchecked_ci(input: impl AsRef<[u8]>) -> Result<Self, ParseError> {
+        let input = input.as_ref();
+
+        parse_complete(input, rfc850_date::<true>)
+    }
+}
+
+fn calendar_valid(date: &HttpDate, year: u16) -> bool {
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days = match date.month {
+        2 => 28 + u8::from(leap),
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
+
+    if date.day > days {
+        return false;
+    }
+
+    // Treat January and February as part of the previous Gregorian year.
+    // Signed division also handles year 0000 without underflow.
+    let offsets = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
+    let year = i32::from(year) - i32::from(date.month < 3);
+    let weekday = (year + year.div_euclid(4) - year.div_euclid(100)
+        + year.div_euclid(400)
+        + offsets[usize::from(date.month - 1)]
+        + i32::from(date.day))
+    .rem_euclid(7);
+
+    weekday == i32::from(date.weekday % 7)
 }
 
 fn parse_complete(
