@@ -41,7 +41,10 @@ jobs:
       - name: Run benchmarks
         uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea # v5.2.1
         env:
+          DIVAN_SAMPLE_SIZE: "10000"
           DIVAN_MIN_TIME: "1"
+          DIVAN_MAX_TIME: "1"
+          DIVAN_SKIP_EXT_TIME: "true"
         with:
           mode: walltime
           run: cargo codspeed run
