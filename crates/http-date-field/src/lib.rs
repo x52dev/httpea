@@ -816,7 +816,7 @@ impl HttpDate {
 }
 
 fn calendar_valid(date: &HttpDate, year: u16) -> bool {
-    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let leap = year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400));
     let days = match date.month {
         2 => 28 + u8::from(leap),
         4 | 6 | 9 | 11 => 30,
