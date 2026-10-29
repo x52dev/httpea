@@ -51,8 +51,8 @@ fn standard_examples() {
             Year::Full(1994)
         };
 
-        assert_eq!(HttpDate::parse(date.as_bytes()).unwrap(), expected(year));
-        assert_eq!(HttpDate::parse_ci(date.as_bytes()).unwrap(), expected(year));
+        assert_eq!(HttpDate::parse_unchecked(date.as_bytes()).unwrap(), expected(year));
+        assert_eq!(HttpDate::parse_unchecked_ci(date.as_bytes()).unwrap(), expected(year));
     }
 }
 
@@ -67,7 +67,7 @@ fn every_weekday_and_month_in_all_formats() {
             ];
 
             for date in dates {
-                let parsed = HttpDate::parse(date.as_bytes()).unwrap();
+                let parsed = HttpDate::parse_unchecked(date.as_bytes()).unwrap();
                 assert_eq!(parsed.weekday, weekday as u8 + 1);
                 assert_eq!(parsed.month, month as u8 + 1);
             }
@@ -79,10 +79,10 @@ fn every_weekday_and_month_in_all_formats() {
 fn case_variants_are_only_accepted_by_cache_parser() {
     for date in DATES {
         for variant in [date.to_ascii_lowercase(), date.to_ascii_uppercase()] {
-            assert!(HttpDate::parse(variant.as_bytes()).is_err());
+            assert!(HttpDate::parse_unchecked(variant.as_bytes()).is_err());
             assert_eq!(
-                HttpDate::parse_ci(variant.as_bytes()).unwrap(),
-                HttpDate::parse(date.as_bytes()).unwrap()
+                HttpDate::parse_unchecked_ci(variant.as_bytes()).unwrap(),
+                HttpDate::parse_unchecked(date.as_bytes()).unwrap()
             );
         }
 
@@ -98,10 +98,10 @@ fn case_variants_are_only_accepted_by_cache_parser() {
                 byte.to_ascii_uppercase()
             };
 
-            assert!(HttpDate::parse(variant.as_slice()).is_err());
+            assert!(HttpDate::parse_unchecked(variant.as_slice()).is_err());
             assert_eq!(
-                HttpDate::parse_ci(variant.as_slice()).unwrap(),
-                HttpDate::parse(date.as_bytes()).unwrap()
+                HttpDate::parse_unchecked_ci(variant.as_slice()).unwrap(),
+                HttpDate::parse_unchecked(date.as_bytes()).unwrap()
             );
         }
     }
@@ -112,8 +112,8 @@ fn every_truncated_prefix_is_rejected() {
     for date in DATES {
         for len in 0..date.len() {
             let prefix = &date.as_bytes()[..len];
-            assert!(HttpDate::parse(prefix).is_err());
-            assert!(HttpDate::parse_ci(prefix).is_err());
+            assert!(HttpDate::parse_unchecked(prefix).is_err());
+            assert!(HttpDate::parse_unchecked_ci(prefix).is_err());
         }
     }
 }
@@ -129,7 +129,7 @@ fn numeric_boundaries_and_leap_seconds() {
         "Mon Dec 31 23:59:60 9999",
         "Mon Jan 01 00:00:00 2000",
     ] {
-        assert!(HttpDate::parse(date.as_bytes()).is_ok(), "{date}");
+        assert!(HttpDate::parse_unchecked(date.as_bytes()).is_ok(), "{date}");
     }
 }
 
@@ -164,8 +164,8 @@ fn rejects_bad_components_spacing_and_zones() {
         "Sun, 06 Nov 1994 08-49-37 GMT",
         "Sun, 06 Nov 1994 08:49:37 GMT, Sun, 06 Nov 1994 08:49:37 GMT",
     ] {
-        assert!(HttpDate::parse(date.as_bytes()).is_err(), "{date}");
-        assert!(HttpDate::parse_ci(date.as_bytes()).is_err(), "{date}");
+        assert!(HttpDate::parse_unchecked(date.as_bytes()).is_err(), "{date}");
+        assert!(HttpDate::parse_unchecked_ci(date.as_bytes()).is_err(), "{date}");
     }
 }
 
@@ -177,8 +177,8 @@ fn rejects_non_ascii_and_control_bytes_at_every_position() {
                 let mut bytes = date.as_bytes().to_vec();
                 bytes[index] = byte;
 
-                assert!(HttpDate::parse(bytes.as_slice()).is_err());
-                assert!(HttpDate::parse_ci(bytes.as_slice()).is_err());
+                assert!(HttpDate::parse_unchecked(bytes.as_slice()).is_err());
+                assert!(HttpDate::parse_unchecked_ci(bytes.as_slice()).is_err());
             }
         }
     }
@@ -186,7 +186,7 @@ fn rejects_non_ascii_and_control_bytes_at_every_position() {
 
 #[test]
 fn leaves_calendar_validation_to_the_caller() {
-    assert!(HttpDate::parse(&b"Mon, 31 Feb 1900 23:59:60 GMT"[..]).is_ok());
+    assert!(HttpDate::parse_unchecked(&b"Mon, 31 Feb 1900 23:59:60 GMT"[..]).is_ok());
 }
 
 #[quickcheck]
@@ -237,8 +237,8 @@ fn generated_components_round_trip(
 
         strict(date.as_bytes()).ok() == Some(expected)
             && cache(date.to_ascii_lowercase().as_bytes()).ok() == Some(expected)
-            && HttpDate::parse(date.as_bytes()).ok() == Some(expected)
-            && HttpDate::parse_ci(date.to_ascii_lowercase().as_bytes()).ok() == Some(expected)
+            && HttpDate::parse_unchecked(date.as_bytes()).ok() == Some(expected)
+            && HttpDate::parse_unchecked_ci(date.to_ascii_lowercase().as_bytes()).ok() == Some(expected)
     })
 }
 
@@ -257,14 +257,14 @@ fn arbitrary_case_is_equivalent(mask: Vec<bool>) -> bool {
             })
             .collect();
 
-        HttpDate::parse_ci(bytes.as_slice()).ok() == HttpDate::parse(date.as_bytes()).ok()
+        HttpDate::parse_unchecked_ci(bytes.as_slice()).ok() == HttpDate::parse_unchecked(date.as_bytes()).ok()
     })
 }
 
 #[quickcheck]
 fn arbitrary_bytes_do_not_panic_and_strict_success_implies_cache_success(bytes: Vec<u8>) -> bool {
-    let strict = HttpDate::parse(bytes.as_slice());
-    let cache = HttpDate::parse_ci(bytes.as_slice());
+    let strict = HttpDate::parse_unchecked(bytes.as_slice());
+    let cache = HttpDate::parse_unchecked_ci(bytes.as_slice());
 
     strict.map_or(true, |date| cache.ok() == Some(date))
 }
@@ -343,12 +343,12 @@ fn assert_date_formats(expected: HttpDate) {
         };
 
         assert_eq!(
-            HttpDate::parse(date.as_bytes()).unwrap(),
+            HttpDate::parse_unchecked(date.as_bytes()).unwrap(),
             expected,
             "{date}"
         );
         assert_eq!(
-            HttpDate::parse_ci(date.to_ascii_lowercase().as_bytes()).unwrap(),
+            HttpDate::parse_unchecked_ci(date.to_ascii_lowercase().as_bytes()).unwrap(),
             expected,
             "{date}"
         );
@@ -411,11 +411,11 @@ fn rfc850_dates_support_every_weekday_length() {
         let date = format!("{weekday}, 06-Nov-94 08:49:37 GMT");
 
         for len in 0..date.len() {
-            assert!(HttpDate::parse(&date.as_bytes()[..len]).is_err());
-            assert!(HttpDate::parse_ci(&date.as_bytes()[..len]).is_err());
+            assert!(HttpDate::parse_unchecked(&date.as_bytes()[..len]).is_err());
+            assert!(HttpDate::parse_unchecked_ci(&date.as_bytes()[..len]).is_err());
         }
 
-        assert!(HttpDate::parse(date.as_bytes()).is_ok());
+        assert!(HttpDate::parse_unchecked(date.as_bytes()).is_ok());
     }
 }
 
@@ -425,8 +425,8 @@ fn complete_api_rejects_trailing_input() {
         for suffix in [" ", "\r\n", "x", ", Sun, 06 Nov 1994 08:49:37 GMT"] {
             let input = format!("{date}{suffix}");
 
-            assert!(HttpDate::parse(input.as_bytes()).is_err());
-            assert!(HttpDate::parse_ci(input.as_bytes()).is_err());
+            assert!(HttpDate::parse_unchecked(input.as_bytes()).is_err());
+            assert!(HttpDate::parse_unchecked_ci(input.as_bytes()).is_err());
         }
     }
 }
@@ -435,16 +435,16 @@ type CompleteParser = fn(&[u8]) -> Result<HttpDate, super::ParseError>;
 
 const FORMAT_PARSERS: [(CompleteParser, CompleteParser); 3] = [
     (
-        |input| HttpDate::parse_imf_fixdate(input),
-        |input| HttpDate::parse_imf_fixdate_ci(input),
+        |input| HttpDate::parse_imf_fixdate_unchecked(input),
+        |input| HttpDate::parse_imf_fixdate_unchecked_ci(input),
     ),
     (
-        |input| HttpDate::parse_rfc850_date(input),
-        |input| HttpDate::parse_rfc850_date_ci(input),
+        |input| HttpDate::parse_rfc850_date_unchecked(input),
+        |input| HttpDate::parse_rfc850_date_unchecked_ci(input),
     ),
     (
-        |input| HttpDate::parse_asctime_date(input),
-        |input| HttpDate::parse_asctime_date_ci(input),
+        |input| HttpDate::parse_asctime_date_unchecked(input),
+        |input| HttpDate::parse_asctime_date_unchecked_ci(input),
     ),
 ];
 
@@ -492,21 +492,21 @@ fn format_parsers_enforce_case_length_and_separators() {
 #[expect(clippy::unnecessary_to_owned, reason = "tests owned input support")]
 fn direct_parsers_accept_strings_and_byte_containers() {
     fn check(input: impl AsRef<[u8]>, index: usize, expected: HttpDate) {
-        assert_eq!(HttpDate::parse(&input).unwrap(), expected);
-        assert_eq!(HttpDate::parse_ci(&input).unwrap(), expected);
+        assert_eq!(HttpDate::parse_unchecked(&input).unwrap(), expected);
+        assert_eq!(HttpDate::parse_unchecked_ci(&input).unwrap(), expected);
 
         let parsed = match index {
             0 => (
-                HttpDate::parse_imf_fixdate(&input),
-                HttpDate::parse_imf_fixdate_ci(&input),
+                HttpDate::parse_imf_fixdate_unchecked(&input),
+                HttpDate::parse_imf_fixdate_unchecked_ci(&input),
             ),
             1 => (
-                HttpDate::parse_rfc850_date(&input),
-                HttpDate::parse_rfc850_date_ci(&input),
+                HttpDate::parse_rfc850_date_unchecked(&input),
+                HttpDate::parse_rfc850_date_unchecked_ci(&input),
             ),
             _ => (
-                HttpDate::parse_asctime_date(&input),
-                HttpDate::parse_asctime_date_ci(&input),
+                HttpDate::parse_asctime_date_unchecked(&input),
+                HttpDate::parse_asctime_date_unchecked_ci(&input),
             ),
         };
 
@@ -514,7 +514,7 @@ fn direct_parsers_accept_strings_and_byte_containers() {
     }
 
     for (index, date) in DATES.into_iter().enumerate() {
-        let expected = HttpDate::parse(date.as_bytes()).unwrap();
+        let expected = HttpDate::parse_unchecked(date.as_bytes()).unwrap();
         let owned = std::string::String::from(date);
 
         check(date, index, expected);
@@ -525,9 +525,36 @@ fn direct_parsers_accept_strings_and_byte_containers() {
     }
 
     assert_eq!(
-        HttpDate::parse(*b"Sun, 06 Nov 1994 08:49:37 GMT").unwrap(),
+        HttpDate::parse_unchecked(*b"Sun, 06 Nov 1994 08:49:37 GMT").unwrap(),
         expected(Year::Full(1994))
     );
-    assert!(HttpDate::parse("Sun, 06 Növ 1994 08:49:37 GMT").is_err());
-    assert!(HttpDate::parse_ci("sun, 06 növ 1994 08:49:37 gmt").is_err());
+    assert!(HttpDate::parse_unchecked("Sun, 06 Növ 1994 08:49:37 GMT").is_err());
+    assert!(HttpDate::parse_unchecked_ci("sun, 06 növ 1994 08:49:37 gmt").is_err());
+}
+
+#[test]
+fn full_year_parsers_validate_calendar_and_weekday() {
+    for (imf, asctime) in [
+        ("Wed, 29 Feb 2023 00:00:00 GMT", "Wed Feb 29 00:00:00 2023"),
+        ("Thu, 29 Feb 1900 00:00:00 GMT", "Thu Feb 29 00:00:00 1900"),
+        ("Wed, 31 Apr 2024 00:00:00 GMT", "Wed Apr 31 00:00:00 2024"),
+        ("Mon, 06 Nov 1994 08:49:37 GMT", "Mon Nov  6 08:49:37 1994"),
+    ] {
+        assert!(HttpDate::parse_imf_fixdate(imf).is_err());
+        assert!(HttpDate::parse_imf_fixdate_ci(imf.to_ascii_lowercase()).is_err());
+        assert!(HttpDate::parse_asctime_date(asctime).is_err());
+        assert!(HttpDate::parse_asctime_date_ci(asctime.to_ascii_lowercase()).is_err());
+        assert!(HttpDate::parse_unchecked(imf).is_ok());
+        assert!(HttpDate::parse_unchecked(asctime).is_ok());
+    }
+
+    for date in [
+        "Tue, 29 Feb 2000 00:00:00 GMT",
+        "Thu, 29 Feb 2024 00:00:00 GMT",
+        "Tue, 29 Feb 2400 00:00:00 GMT",
+        "Mon, 01 Jan 1900 00:00:00 GMT",
+        "Fri, 31 Dec 9999 23:59:59 GMT",
+    ] {
+        assert!(HttpDate::parse(date).is_ok(), "{date}");
+    }
 }
