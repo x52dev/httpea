@@ -45,7 +45,6 @@ jobs:
           DIVAN_SAMPLE_SIZE: "10000"
           DIVAN_MIN_TIME: "1"
           DIVAN_MAX_TIME: "1"
-          DIVAN_SKIP_EXT_TIME: "true"
         with:
           mode: walltime
           run: cargo codspeed run
