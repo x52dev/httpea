@@ -23,11 +23,6 @@ fn parse_http_3() {
     black_box(Version::try_from_slice(black_box(b"HTTP/3")).unwrap());
 }
 
-#[divan::bench(sample_size = 1_000_000)]
-fn as_slice_http_1_1() {
-    black_box(black_box(Version::Http1_1).as_slice());
-}
-
 fn main() {
     divan::main();
 }
