@@ -40,7 +40,7 @@ jobs:
         run: cargo codspeed build --all-features --measurement-mode walltime
 
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea # v5.2.1
+        uses: CodSpeedHQ/action@78102a468f96d8e0ccb92d0ec49425753fc42062 # v5.6.0
         env:
           DIVAN_SAMPLE_SIZE: "10000"
           DIVAN_MIN_TIME: "1"
