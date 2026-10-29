@@ -434,11 +434,17 @@ fn complete_api_rejects_trailing_input() {
 type CompleteParser = fn(&[u8]) -> Result<HttpDate, super::ParseError>;
 
 const FORMAT_PARSERS: [(CompleteParser, CompleteParser); 3] = [
-    (HttpDate::parse_imf_fixdate, HttpDate::parse_imf_fixdate_ci),
-    (HttpDate::parse_rfc850_date, HttpDate::parse_rfc850_date_ci),
     (
-        HttpDate::parse_asctime_date,
-        HttpDate::parse_asctime_date_ci,
+        |input| HttpDate::parse_imf_fixdate(input),
+        |input| HttpDate::parse_imf_fixdate_ci(input),
+    ),
+    (
+        |input| HttpDate::parse_rfc850_date(input),
+        |input| HttpDate::parse_rfc850_date_ci(input),
+    ),
+    (
+        |input| HttpDate::parse_asctime_date(input),
+        |input| HttpDate::parse_asctime_date_ci(input),
     ),
 ];
 
@@ -480,4 +486,48 @@ fn format_parsers_enforce_case_length_and_separators() {
             }
         }
     }
+}
+
+#[test]
+#[expect(clippy::unnecessary_to_owned, reason = "tests owned input support")]
+fn direct_parsers_accept_strings_and_byte_containers() {
+    fn check(input: impl AsRef<[u8]>, index: usize, expected: HttpDate) {
+        assert_eq!(HttpDate::parse(&input).unwrap(), expected);
+        assert_eq!(HttpDate::parse_ci(&input).unwrap(), expected);
+
+        let parsed = match index {
+            0 => (
+                HttpDate::parse_imf_fixdate(&input),
+                HttpDate::parse_imf_fixdate_ci(&input),
+            ),
+            1 => (
+                HttpDate::parse_rfc850_date(&input),
+                HttpDate::parse_rfc850_date_ci(&input),
+            ),
+            _ => (
+                HttpDate::parse_asctime_date(&input),
+                HttpDate::parse_asctime_date_ci(&input),
+            ),
+        };
+
+        assert_eq!(parsed, (Ok(expected), Ok(expected)));
+    }
+
+    for (index, date) in DATES.into_iter().enumerate() {
+        let expected = HttpDate::parse(date.as_bytes()).unwrap();
+        let owned = std::string::String::from(date);
+
+        check(date, index, expected);
+        check(&owned, index, expected);
+        check(owned, index, expected);
+        check(date.as_bytes(), index, expected);
+        check(date.as_bytes().to_vec(), index, expected);
+    }
+
+    assert_eq!(
+        HttpDate::parse(*b"Sun, 06 Nov 1994 08:49:37 GMT").unwrap(),
+        expected(Year::Full(1994))
+    );
+    assert!(HttpDate::parse("Sun, 06 Növ 1994 08:49:37 GMT").is_err());
+    assert!(HttpDate::parse_ci("sun, 06 növ 1994 08:49:37 gmt").is_err());
 }
