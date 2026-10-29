@@ -18,7 +18,8 @@ concurrency:
 jobs:
   benchmarks:
     name: Run benchmarks
-    runs-on: ubuntu-latest
+    runs-on: codspeed-macro-arm64-graviton-ubuntu-22-04
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -36,12 +37,14 @@ jobs:
           tool: cargo-codspeed
 
       - name: Build benchmarks
-        run: cargo codspeed build --all-features
+        run: cargo codspeed build --all-features --measurement-mode walltime
 
       - name: Run benchmarks
         uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea # v5.2.1
         env:
+          DIVAN_SAMPLE_SIZE: "10000"
           DIVAN_MIN_TIME: "1"
+          DIVAN_MAX_TIME: "1"
         with:
-          mode: simulation
+          mode: walltime
           run: cargo codspeed run
