@@ -3,29 +3,29 @@
 use ::winnow::Parser as _;
 
 use super::*;
-use crate::{parse_http_date, parse_http_date_ci};
+use crate::winnow::{parse_http_date, parse_http_date_ci};
 
 type CompleteParser = fn(&[u8]) -> Result<HttpDate, crate::ParseError>;
 type Adapter = fn(&mut &[u8]) -> ::winnow::ModalResult<HttpDate>;
 
 const FORMAT_PARSERS: [(CompleteParser, CompleteParser, Adapter, Adapter); 3] = [
     (
-        HttpDate::parse_imf_fixdate,
-        HttpDate::parse_imf_fixdate_ci,
-        crate::parse_imf_fixdate,
-        crate::parse_imf_fixdate_ci,
+        |input| HttpDate::parse_imf_fixdate(input),
+        |input| HttpDate::parse_imf_fixdate_ci(input),
+        crate::winnow::parse_imf_fixdate,
+        crate::winnow::parse_imf_fixdate_ci,
     ),
     (
-        HttpDate::parse_rfc850_date,
-        HttpDate::parse_rfc850_date_ci,
-        crate::parse_rfc850_date,
-        crate::parse_rfc850_date_ci,
+        |input| HttpDate::parse_rfc850_date(input),
+        |input| HttpDate::parse_rfc850_date_ci(input),
+        crate::winnow::parse_rfc850_date,
+        crate::winnow::parse_rfc850_date_ci,
     ),
     (
-        HttpDate::parse_asctime_date,
-        HttpDate::parse_asctime_date_ci,
-        crate::parse_asctime_date,
-        crate::parse_asctime_date_ci,
+        |input| HttpDate::parse_asctime_date(input),
+        |input| HttpDate::parse_asctime_date_ci(input),
+        crate::winnow::parse_asctime_date,
+        crate::winnow::parse_asctime_date_ci,
     ),
 ];
 

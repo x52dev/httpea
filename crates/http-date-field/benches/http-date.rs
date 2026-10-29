@@ -3,7 +3,7 @@
 use std::hint::black_box;
 
 #[cfg(feature = "winnow")]
-use http_date_field::{parse_http_date, parse_http_date_ci};
+use http_date_field::winnow::{parse_http_date, parse_http_date_ci};
 #[cfg(feature = "winnow")]
 use winnow::Parser as _;
 
@@ -90,7 +90,7 @@ mod imf_fixdate {
     #[divan::bench]
     fn adapter_strict() {
         black_box(
-            http_date_field::parse_imf_fixdate
+            http_date_field::winnow::parse_imf_fixdate
                 .parse(black_box(DATES[0]))
                 .unwrap(),
         );
@@ -105,7 +105,7 @@ mod imf_fixdate {
     #[divan::bench]
     fn adapter_ci_canonical() {
         black_box(
-            http_date_field::parse_imf_fixdate_ci
+            http_date_field::winnow::parse_imf_fixdate_ci
                 .parse(black_box(DATES[0]))
                 .unwrap(),
         );
@@ -122,7 +122,7 @@ mod imf_fixdate {
     #[divan::bench]
     fn adapter_ci_mixed_case() {
         black_box(
-            http_date_field::parse_imf_fixdate_ci
+            http_date_field::winnow::parse_imf_fixdate_ci
                 .parse(black_box(MIXED_CASE[0]))
                 .unwrap(),
         );
@@ -140,7 +140,7 @@ mod rfc850_date {
     #[divan::bench]
     fn adapter_strict() {
         black_box(
-            http_date_field::parse_rfc850_date
+            http_date_field::winnow::parse_rfc850_date
                 .parse(black_box(DATES[1]))
                 .unwrap(),
         );
@@ -155,7 +155,7 @@ mod rfc850_date {
     #[divan::bench]
     fn adapter_ci_canonical() {
         black_box(
-            http_date_field::parse_rfc850_date_ci
+            http_date_field::winnow::parse_rfc850_date_ci
                 .parse(black_box(DATES[1]))
                 .unwrap(),
         );
@@ -172,7 +172,7 @@ mod rfc850_date {
     #[divan::bench]
     fn adapter_ci_mixed_case() {
         black_box(
-            http_date_field::parse_rfc850_date_ci
+            http_date_field::winnow::parse_rfc850_date_ci
                 .parse(black_box(MIXED_CASE[1]))
                 .unwrap(),
         );
@@ -190,7 +190,7 @@ mod asctime_date {
     #[divan::bench]
     fn adapter_strict() {
         black_box(
-            http_date_field::parse_asctime_date
+            http_date_field::winnow::parse_asctime_date
                 .parse(black_box(DATES[2]))
                 .unwrap(),
         );
@@ -205,7 +205,7 @@ mod asctime_date {
     #[divan::bench]
     fn adapter_ci_canonical() {
         black_box(
-            http_date_field::parse_asctime_date_ci
+            http_date_field::winnow::parse_asctime_date_ci
                 .parse(black_box(DATES[2]))
                 .unwrap(),
         );
@@ -222,7 +222,7 @@ mod asctime_date {
     #[divan::bench]
     fn adapter_ci_mixed_case() {
         black_box(
-            http_date_field::parse_asctime_date_ci
+            http_date_field::winnow::parse_asctime_date_ci
                 .parse(black_box(MIXED_CASE[2]))
                 .unwrap(),
         );
