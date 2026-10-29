@@ -51,8 +51,14 @@ fn standard_examples() {
             Year::Full(1994)
         };
 
-        assert_eq!(HttpDate::parse_unchecked(date.as_bytes()).unwrap(), expected(year));
-        assert_eq!(HttpDate::parse_unchecked_ci(date.as_bytes()).unwrap(), expected(year));
+        assert_eq!(
+            HttpDate::parse_unchecked(date.as_bytes()).unwrap(),
+            expected(year)
+        );
+        assert_eq!(
+            HttpDate::parse_unchecked_ci(date.as_bytes()).unwrap(),
+            expected(year)
+        );
     }
 }
 
@@ -164,8 +170,14 @@ fn rejects_bad_components_spacing_and_zones() {
         "Sun, 06 Nov 1994 08-49-37 GMT",
         "Sun, 06 Nov 1994 08:49:37 GMT, Sun, 06 Nov 1994 08:49:37 GMT",
     ] {
-        assert!(HttpDate::parse_unchecked(date.as_bytes()).is_err(), "{date}");
-        assert!(HttpDate::parse_unchecked_ci(date.as_bytes()).is_err(), "{date}");
+        assert!(
+            HttpDate::parse_unchecked(date.as_bytes()).is_err(),
+            "{date}"
+        );
+        assert!(
+            HttpDate::parse_unchecked_ci(date.as_bytes()).is_err(),
+            "{date}"
+        );
     }
 }
 
@@ -238,7 +250,8 @@ fn generated_components_round_trip(
         strict(date.as_bytes()).ok() == Some(expected)
             && cache(date.to_ascii_lowercase().as_bytes()).ok() == Some(expected)
             && HttpDate::parse_unchecked(date.as_bytes()).ok() == Some(expected)
-            && HttpDate::parse_unchecked_ci(date.to_ascii_lowercase().as_bytes()).ok() == Some(expected)
+            && HttpDate::parse_unchecked_ci(date.to_ascii_lowercase().as_bytes()).ok()
+                == Some(expected)
     })
 }
 
@@ -257,7 +270,8 @@ fn arbitrary_case_is_equivalent(mask: Vec<bool>) -> bool {
             })
             .collect();
 
-        HttpDate::parse_unchecked_ci(bytes.as_slice()).ok() == HttpDate::parse_unchecked(date.as_bytes()).ok()
+        HttpDate::parse_unchecked_ci(bytes.as_slice()).ok()
+            == HttpDate::parse_unchecked(date.as_bytes()).ok()
     })
 }
 

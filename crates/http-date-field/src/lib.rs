@@ -328,7 +328,9 @@ impl HttpDate {
                 return Err(ParseError);
             };
 
-            calendar_valid(&date, year).then_some(date).ok_or(ParseError)
+            calendar_valid(&date, year)
+                .then_some(date)
+                .ok_or(ParseError)
         })
     }
 
@@ -416,7 +418,9 @@ impl HttpDate {
                 return Err(ParseError);
             };
 
-            calendar_valid(&date, year).then_some(date).ok_or(ParseError)
+            calendar_valid(&date, year)
+                .then_some(date)
+                .ok_or(ParseError)
         })
     }
 
@@ -505,7 +509,9 @@ impl HttpDate {
                 return Err(ParseError);
             };
 
-            calendar_valid(&date, year).then_some(date).ok_or(ParseError)
+            calendar_valid(&date, year)
+                .then_some(date)
+                .ok_or(ParseError)
         })
     }
 
@@ -595,7 +601,9 @@ impl HttpDate {
                 return Err(ParseError);
             };
 
-            calendar_valid(&date, year).then_some(date).ok_or(ParseError)
+            calendar_valid(&date, year)
+                .then_some(date)
+                .ok_or(ParseError)
         })
     }
 

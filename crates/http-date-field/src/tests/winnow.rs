@@ -33,10 +33,15 @@ const FORMAT_PARSERS: [(CompleteParser, CompleteParser, Adapter, Adapter); 3] = 
 fn consumes_only_the_date() {
     for date in DATES {
         let value = format!("{date}\r\nNext: value");
-        let (rest, parsed) = parse_http_date_unchecked.parse_peek(value.as_bytes()).unwrap();
+        let (rest, parsed) = parse_http_date_unchecked
+            .parse_peek(value.as_bytes())
+            .unwrap();
 
         assert_eq!(rest, b"\r\nNext: value");
-        assert_eq!(parsed, parse_http_date_unchecked.parse(date.as_bytes()).unwrap());
+        assert_eq!(
+            parsed,
+            parse_http_date_unchecked.parse(date.as_bytes()).unwrap()
+        );
         assert!(parse_http_date_unchecked.parse(value.as_bytes()).is_err());
     }
 }
@@ -112,7 +117,8 @@ fn generated_components_round_trip(
                 .ok()
                 == Some(expected)
             && HttpDate::parse_unchecked(date.as_bytes()).ok() == Some(expected)
-            && HttpDate::parse_unchecked_ci(date.to_ascii_lowercase().as_bytes()).ok() == Some(expected)
+            && HttpDate::parse_unchecked_ci(date.to_ascii_lowercase().as_bytes()).ok()
+                == Some(expected)
             && parse_http_date_unchecked.parse(date.as_bytes()).ok() == Some(expected)
             && parse_http_date_unchecked_ci
                 .parse(date.to_ascii_lowercase().as_bytes())
@@ -125,7 +131,10 @@ fn generated_components_round_trip(
 fn arbitrary_bytes_do_not_panic_and_strict_success_implies_cache_success(bytes: Vec<u8>) -> bool {
     let strict = parse_http_date_unchecked.parse(bytes.as_slice());
     let cache = parse_http_date_unchecked_ci.parse(bytes.as_slice());
-    assert_eq!(strict.as_ref().ok(), HttpDate::parse_unchecked(&bytes).as_ref().ok());
+    assert_eq!(
+        strict.as_ref().ok(),
+        HttpDate::parse_unchecked(&bytes).as_ref().ok()
+    );
     assert_eq!(
         cache.as_ref().ok(),
         HttpDate::parse_unchecked_ci(&bytes).as_ref().ok()
