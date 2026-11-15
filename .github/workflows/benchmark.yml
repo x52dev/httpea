@@ -46,7 +46,7 @@ jobs:
         run: cargo codspeed build --all-features --measurement-mode walltime,memory
 
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@78102a468f96d8e0ccb92d0ec49425753fc42062 # v5.6.0
+        uses: CodSpeedHQ/action@af75f77f17a054769abefaa42fe8dc2975469b5f # v5.6.3
         env:
           DIVAN_SAMPLE_SIZE: "10000"
           DIVAN_SAMPLE_COUNT: "10"
